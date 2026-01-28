@@ -26,6 +26,9 @@ LilWonderServer.use(router)
 //server  to use uploads folder i the backedn to display images. In thid projects to display images uploaded by a user during selling a book.First  is path of the folder. static is the method to make this available to server
 LilWonderServer.use('/uploads',express.static('./uploads'))
 
+//server to make use of pdf folder, which contains resume uploaded by users while applying for a job.
+LilWonderServer.use('/pdf',express.static('./pdf'))
+
 
 //create port - 3000 or any other value
 const PORT = 3000

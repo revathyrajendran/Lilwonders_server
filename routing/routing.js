@@ -7,6 +7,8 @@ const productController = require('../controller/productController')
 const adminMiddleware = require('../Middlewares/adminMiddleware')
 //multerConfig was exported.
 const multerConfig = require('../Middlewares/imgMulterMiddleware')
+const applicationController = require('../controller/applicationController')
+const pdfmulterConfig = require('../Middlewares/pdfMulterMiddleware')
 
 
 //--------unauthorised user-------------------
@@ -41,6 +43,8 @@ router.get('/admin-getallproducts',adminMiddleware,productController.getAllProdu
 router.put('/admin-profile/edit',adminMiddleware,multerConfig.single('profile'),userController.adminProfileEditController)
 //admin can delete a added product if not needed any more
 router.delete('/admin/:id/deleteproduct',adminMiddleware,productController.deleteAProductByAdminController)
+//admin to get   applications ,  applied by the users for a job: get user applications , users submit their resume , so pdfmulterConfig. single is the method and resume is field.
+router.get('/all-application/admin',adminMiddleware,applicationController.getApplicationController)
 
 
 
@@ -55,6 +59,9 @@ router.get('/home-products',productController.getAllProdctsInHomePageController)
 router.put('/user-profile/edit',jwtMiddleware,multerConfig.single('profile'),userController.loggedInUserProfileEditController)
 //to get all products bought by a user---do API
 router.get('/user-bought/products',jwtMiddleware,productController.getAllUserBoughtProductsController)
+//user applying for a job: add-application, users submit their resume , so pdfmulterConfig. single is the method and resume is field.
+router.post('/user-application/add',jwtMiddleware,pdfmulterConfig.single('resume'),applicationController.addApplicationController)
+
 
  
 
