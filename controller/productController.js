@@ -1,5 +1,9 @@
 const products = require('../models/productModel')
 
+
+//payment
+const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlcTbNlCgsQFW3APP0RHabXlll4EyN8k1iOGN6F9JBqweF8QLF1MmU002wt6wRUB')
+
 //----------------Authorized--------------------
    //--------Admin-------------------
         //1)To  add a product by admin
@@ -61,6 +65,20 @@ const products = require('../models/productModel')
          
          
         }
+
+        //4)Admin to get returned products in returns of odersAdmin page
+        exports.getReturnedProductsForAdminController = async (req, res) => {
+              try {
+               const returnedProducts = await products.find({
+                 status: "Return In Process"
+                      })
+
+                   res.status(200).json(returnedProducts)
+
+                   } catch (err) {
+                         res.status(500).json(err)
+                    }
+               }
 
 
    //----------user-------------------
@@ -124,6 +142,82 @@ const products = require('../models/productModel')
             
 
          }
+         
+         //make payment ----user
+         exports.makeProductPaymentController = async(req,res)=>{
+        console.log("Inside makeProductPaymentController! ");
+        //Product Details
+        const{_id,name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg}=req.body
+        //payload from jwtmiddleware
+        const email = req.payload
+          try{
+        //order same as schema,bought is the logged in person who needs to buy the product. 
+       const updateProductDetails = await products.findByIdAndUpdate({_id},{name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg,status:'sold',bought:email},{new:true})
+         console.log(updateProductDetails);
+         //stripe checkout sessions : array of objects
+    const line_items = [{
+      //price_data is also object
+      price_data:{
+              currency:'usd',
+              //object
+              product_data:{
+                //string
+                name:name,
+                description: `${fabrictype} | ${color}`,
+                //array
+              images:uploadImg,
+              //additional information , uploadImg not needed.
+              metadata:{
+                name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,status:'order in process',bought:email
+              },
+              },
+              
+              //cent, usd so 1D = 100.
+              unit_amount:Math.round(discountPrice*100)
+
+      },
+      //only 1 book available
+      quantity:1
+
+    }]
+    //checkout session creation code from stripe website
+    const session = await stripe.checkout.sessions.create({
+         //array
+      payment_method_types:["card"],
+          //key and value are same
+          line_items,
+          mode: 'payment',
+          //url which we must see in frontend when payment is successful!.
+          success_url: 'http://localhost:5173/payment-success',
+          //cancel_url or if error url
+          cancel_url : 'http://localhost:5173/payment-error'
+            });
+            console.log(session) 
+             res.status(200).json({checkoutSessionURL:session.url})   
+    
+        
+        }catch(err){
+        res.status(500).json(err)
+        }
+
+
+         }
+
+        //Return order by user
+         exports.ReturnOrderByUserController = async(req,res)=>{
+            console.log("Inside cancelOrderByUserController!");
+            //Product Details
+           const{_id,name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg}=req.body
+             //payload from jwtmiddleware
+                const email = req.payload
+              //order same as schema,bought is the logged in person who needs to buy the product. 
+       try{
+         const ReturnedProductDetails = await products.findByIdAndUpdate({_id},{name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg,status:'Return In Process',bought:email},{new:true})
+         res.status(200).json({ReturnedProductDetails})
+         }catch(err){
+        res.status(500).json(err)
+        }
+       }
 
          
 
@@ -139,7 +233,7 @@ const products = require('../models/productModel')
       console.log("Inside getAllProdctsInHomePageController!! ");
       
       try{
-         //sort is used to arrange products, _id is unique value in mongo db, -1 to arrange products in descending order , latest uploaded product will be displayed first, limit is used here because we need only 4 books to be shown in the home page 
+         //sort is used to arrange products, _id is unique value in mongo db, -1 to arrange products in descending order , latest uploaded product will be displayed first, limit is used here because we need only 4 products to be shown in the home page 
          const allHomeProducts = await products.find().sort({_id:-1}).limit(4)
          res.status(200).json(allHomeProducts)
 
@@ -148,3 +242,5 @@ const products = require('../models/productModel')
       }
       
    }
+
+    

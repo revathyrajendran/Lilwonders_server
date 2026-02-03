@@ -9,6 +9,8 @@ const adminMiddleware = require('../Middlewares/adminMiddleware')
 const multerConfig = require('../Middlewares/imgMulterMiddleware')
 const applicationController = require('../controller/applicationController')
 const pdfmulterConfig = require('../Middlewares/pdfMulterMiddleware')
+const reviewController = require('../controller/reviewController')
+const addressController = require('../controller/addressController')
 
 
 //--------unauthorised user-------------------
@@ -45,6 +47,10 @@ router.put('/admin-profile/edit',adminMiddleware,multerConfig.single('profile'),
 router.delete('/admin/:id/deleteproduct',adminMiddleware,productController.deleteAProductByAdminController)
 //admin to get   applications ,  applied by the users for a job: get user applications , users submit their resume , so pdfmulterConfig. single is the method and resume is field.
 router.get('/all-application/admin',adminMiddleware,applicationController.getApplicationController)
+//router to display all orders for admin
+router.get('/admin-allorders',adminMiddleware,addressController.getAllOrdersForAdminController)
+//router to display all returned orders for admin
+router.get('/admin-returnedorders',adminMiddleware,productController.getReturnedProductsForAdminController)
 
 
 
@@ -61,6 +67,17 @@ router.put('/user-profile/edit',jwtMiddleware,multerConfig.single('profile'),use
 router.get('/user-bought/products',jwtMiddleware,productController.getAllUserBoughtProductsController)
 //user applying for a job: add-application, users submit their resume , so pdfmulterConfig. single is the method and resume is field.
 router.post('/user-application/add',jwtMiddleware,pdfmulterConfig.single('resume'),applicationController.addApplicationController)
+//user adding address to buy a product
+router.post('/user-address/add',jwtMiddleware,addressController.addAddressByUSERController)
+//user Making payment for a product
+router.post('/make-payment',jwtMiddleware,productController.makeProductPaymentController)
+//return order
+router.post('/user-return/product',jwtMiddleware,productController.ReturnOrderByUserController)
+//user adding a review about the product
+router.post('/user-review/add',jwtMiddleware,reviewController.addAProductReviewByUserController)
+//user adding a review about the product, No need of logging In, to see all products in Home page
+router.get('/user-review/home',reviewController.getAllReviewsInHomePageController)
+
 
 
  
