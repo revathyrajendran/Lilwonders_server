@@ -1,5 +1,8 @@
 const products = require('../models/productModel')
 
+//for user bought products
+const addresses = require('../models/addressModel')
+
 
 //payment
 const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlcTbNlCgsQFW3APP0RHabXlll4EyN8k1iOGN6F9JBqweF8QLF1MmU002wt6wRUB')
@@ -66,12 +69,14 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
          
         }
 
-        //4)Admin to get returned products in returns of odersAdmin page
-        exports.getReturnedProductsForAdminController = async (req, res) => {
+        //4)Admin to get returned products and cancelled in returns of odersAdmin page
+        exports.getReturnedAndCancelledProductsForAdminController = async (req, res) => {
               try {
-               const returnedProducts = await products.find({
-                 status: "Return In Process"
-                      })
+               const returnedProducts = await addresses.find({
+                 orderstatus: { 
+                $in: ["Return In Process","Cancel In Process","Cancelled","Returned"] 
+                     }
+               })
 
                    res.status(200).json(returnedProducts)
 
@@ -79,7 +84,97 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
                          res.status(500).json(err)
                     }
                }
+         
+         //5)Approve Return 
+         exports.approveReturnByAdminController=async(req,res)=>{
+            console.log("inside approveReturnByAdminController!!!");
+            //address details
+            const{id}=req.params
+           
+           //payload from jwtmiddleware : user who clicks return
+                const adminemail = req.payload
+              //order same as schema,bought is the logged in person who needs to buy the product. 
+       try{
+         
 
+         const order = await addresses.findOne({_id:id})
+         if(!order){
+             res.status(404).json("No Such Returned Order  Found!!!")
+         }
+         else{
+            const updatedOrder = await addresses.findByIdAndUpdate(
+            id,{ orderstatus : "Returned"},{ new:true });
+            // 3️⃣ update PRODUCT availability : status must become unordered then only someone else can buy it
+               await products.findOneAndUpdate({ productcode: order.productcode },{ status:"unordered",bought:"" });
+               res.status(200).json({updatedOrder})
+         }
+         
+         }catch(err){
+        res.status(500).json(err)
+        }
+            
+         }
+
+
+         //6)Approve Cancel
+         exports.approveCancelByAdminController=async(req,res)=>{
+            console.log("inside approveCancelByAdminController!!!");
+           //address details
+            const{id}=req.params
+           
+           //payload from jwtmiddleware : user who clicks return
+                const adminemail = req.payload
+              //order same as schema,bought is the logged in person who needs to buy the product. 
+       try{
+         
+
+         const order = await addresses.findOne({_id:id})
+         if(!order){
+             res.status(404).json("No Such Cancelled Order  Found!!!")
+         }
+         else{
+            const updatedOrder = await addresses.findByIdAndUpdate(
+            id,{ orderstatus : "Cancelled"},{ new:true });
+            // 3️⃣ update PRODUCT availability : status must become unordered then only someone else can buy it
+               await products.findOneAndUpdate({ productcode: order.productcode },{ status:"unordered",bought:"" });
+               res.status(200).json({updatedOrder})
+         }
+         
+         }catch(err){
+        res.status(500).json(err)
+        }
+             
+         }
+
+         //7)Confirm delivery
+          exports.approveDeliveryByAdminController=async(req,res)=>{
+            console.log("inside approveDeliveryByAdminController!!!");
+            //address details
+            const{id}=req.params
+           
+           //payload from jwtmiddleware : user who clicks return
+                const adminemail = req.payload
+              //order same as schema,bought is the logged in person who needs to buy the product. 
+       try{
+         
+
+         const order = await addresses.findOne({_id:id})
+         if(!order){
+             res.status(404).json("No Such  Order  Found!!!")
+         }
+         else{
+            const updatedOrder = await addresses.findByIdAndUpdate(
+            id,{ orderstatus : "sold"},{ new:true });
+            // 3️⃣ update PRODUCT availability : status must become sold then only nobody else must not buy it. Product dissapears from allproducts.
+               await products.findOneAndUpdate({ productcode: order.productcode },{ status:"sold" });
+               res.status(200).json({updatedOrder})
+         }
+         
+         }catch(err){
+        res.status(500).json(err)
+        }
+            
+         }
 
    //----------user-------------------
          //1)get all products for users when users after logging in and clicking shop navigation menu from headers
@@ -131,8 +226,8 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
             console.log("Inside getAllUserBoughtProductsController!! ");
             const emailOfUser = req.payload
             try{
-               //bought was declared in schema, which was empty initially
-               const userboughtproducts = await products.find({bought:emailOfUser})
+               //bought was declared in schema, which was empty initially, to start from recent orders
+               const userboughtproducts = await addresses.find({usermail:emailOfUser}).sort({_id:-1})
                res.status(200).json(userboughtproducts)
 
 
@@ -152,7 +247,7 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
         const email = req.payload
           try{
         //order same as schema,bought is the logged in person who needs to buy the product. 
-       const updateProductDetails = await products.findByIdAndUpdate({_id},{name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg,status:'sold',bought:email},{new:true})
+       const updateProductDetails = await products.findByIdAndUpdate({_id},{name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg,status:'ordered',bought:email},{new:true})
          console.log(updateProductDetails);
          //stripe checkout sessions : array of objects
     const line_items = [{
@@ -168,7 +263,7 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
               images:uploadImg,
               //additional information , uploadImg not needed.
               metadata:{
-                name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,status:'order in process',bought:email
+                name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,status:'ordered',bought:email
               },
               },
               
@@ -205,15 +300,53 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
 
         //Return order by user
          exports.ReturnOrderByUserController = async(req,res)=>{
+            console.log("Inside ReturnOrderByUserController!");
+            //address details
+            const{id}=req.params
+           
+           //payload from jwtmiddleware : user who clicks return
+                const email = req.payload
+              //order same as schema,bought is the logged in person who needs to buy the product. 
+       try{
+         
+
+         const order = await addresses.findOne({_id:id,usermail:email})
+         if(!order){
+             res.status(404).json("Order Not Found")
+         }
+         else{
+            const updatedOrder = await addresses.findByIdAndUpdate(
+            id,{ orderstatus : "Return In Process"},{ new:true });
+            // 3️⃣ update PRODUCT availability : status must become unordered then only someone else can buy it
+               await products.findOneAndUpdate({ productcode: order.productcode },{ status:"Return In Process" });
+               res.status(200).json({updatedOrder})
+         }
+         
+         }catch(err){
+        res.status(500).json(err)
+        }
+       }
+
+       //Return order by user
+         exports.CancelOrderByUserController = async(req,res)=>{
             console.log("Inside cancelOrderByUserController!");
-            //Product Details
-           const{_id,name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg}=req.body
+            //address details
+            const{id}=req.params
              //payload from jwtmiddleware
                 const email = req.payload
               //order same as schema,bought is the logged in person who needs to buy the product. 
        try{
-         const ReturnedProductDetails = await products.findByIdAndUpdate({_id},{name, productcode,brand,ageGroup,color,price,discountPrice,description, occasion,idealFor ,fabrictype,fabricCare,uploadImg,status:'Return In Process',bought:email},{new:true})
-         res.status(200).json({ReturnedProductDetails})
+          const order = await addresses.findOne({_id:id,usermail:email})
+         if(!order){
+             res.status(404).json("Order Not Found")
+         }
+         else{
+            const updatedOrder = await addresses.findByIdAndUpdate(
+            id,{ orderstatus :"Cancel In Process" },{ new:true });
+            // 3️⃣ update PRODUCT availability
+               await products.findOneAndUpdate({ productcode: order.productcode },{ status:"Cancel In Process" });
+               res.status(200).json({updatedOrder})
+         }
          }catch(err){
         res.status(500).json(err)
         }

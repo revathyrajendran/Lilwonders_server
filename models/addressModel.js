@@ -29,8 +29,21 @@ const addressSchema = new mongoose.Schema({
         type:String,
         required:true
       },
+      //product details
       //unique
        productcode:{
+         type:String,
+        required:true
+      },
+       productname:{
+         type:String,
+        required:true
+      },
+        productprice:{
+         type:String,
+        required:true
+      },
+       productimg:{
          type:String,
         required:true
       },
@@ -41,7 +54,7 @@ const addressSchema = new mongoose.Schema({
       orderstatus:{
         type:String,
         required:true,
-        default:'sold'
+        default:'ordered'
 
       }
       

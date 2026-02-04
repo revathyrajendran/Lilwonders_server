@@ -49,8 +49,17 @@ router.delete('/admin/:id/deleteproduct',adminMiddleware,productController.delet
 router.get('/all-application/admin',adminMiddleware,applicationController.getApplicationController)
 //router to display all orders for admin
 router.get('/admin-allorders',adminMiddleware,addressController.getAllOrdersForAdminController)
-//router to display all returned orders for admin
-router.get('/admin-returnedorders',adminMiddleware,productController.getReturnedProductsForAdminController)
+//router to display all returned and cancelled orders for admin
+router.get('/admin-returnedandcancelledorders',adminMiddleware,productController.getReturnedAndCancelledProductsForAdminController)
+//router for admin to click return approved
+router.post('/admin-approve-return/:id',adminMiddleware,productController.approveReturnByAdminController)
+//router for admin to click Cancel approved
+router.post('/admin-approve-cancel/:id',adminMiddleware,productController.approveCancelByAdminController)
+//router for admin to click return approved
+router.post('/admin-approve-sold/:id',adminMiddleware,productController.approveDeliveryByAdminController)
+
+
+//router to click delivered by admin 
 
 
 
@@ -71,8 +80,10 @@ router.post('/user-application/add',jwtMiddleware,pdfmulterConfig.single('resume
 router.post('/user-address/add',jwtMiddleware,addressController.addAddressByUSERController)
 //user Making payment for a product
 router.post('/make-payment',jwtMiddleware,productController.makeProductPaymentController)
-//return order
-router.post('/user-return/product',jwtMiddleware,productController.ReturnOrderByUserController)
+//return delivered order by user
+router.post('/user-return/:id',jwtMiddleware,productController.ReturnOrderByUserController)
+//cancel ordered order by user
+router.post('/user-cancel/:id',jwtMiddleware,productController.CancelOrderByUserController)
 //user adding a review about the product
 router.post('/user-review/add',jwtMiddleware,reviewController.addAProductReviewByUserController)
 //user adding a review about the product, No need of logging In, to see all products in Home page
