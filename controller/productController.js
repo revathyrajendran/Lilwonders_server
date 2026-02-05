@@ -283,9 +283,12 @@ const stripe = require('stripe')('sk_test_51SvCnM2FRWxWdt4UgCIBIYDfJn9nEVtw8kHlc
           line_items,
           mode: 'payment',
           //url which we must see in frontend when payment is successful!.
-          success_url: 'http://localhost:5173/payment-success',
+         // success_url: 'http://localhost:5173/payment-success',
           //cancel_url or if error url
-          cancel_url : 'http://localhost:5173/payment-error'
+          //cancel_url : 'http://localhost:5173/payment-error'
+          success_url: 'https://lilwonders-frontend-tpa8.vercel.app/payment-success',
+          cancel_url : 'https://lilwonders-frontend-tpa8.vercel.app/payment-error'
+
             });
             console.log(session) 
              res.status(200).json({checkoutSessionURL:session.url})   
